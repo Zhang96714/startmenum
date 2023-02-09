@@ -49,12 +49,11 @@ public class DirectoryMoveService {
         printTasks();
         //run tasks
         runTasks();
-
-        System.out.println("结束.");
     }
 
     void addDirs(List<Path> subDirs) throws IOException{
         Files.list(startMenu).forEach(path -> {
+            //only directory
             if (path.toFile().isDirectory()) {
                 boolean add=true;
                 if(useCpFile){
@@ -75,16 +74,17 @@ public class DirectoryMoveService {
             //files
             System.out.println(path.toString() + "下的子目录:");
             long count = Files.list(path).count();
-            //skip ignore
-            if (0 == count && autoRemoveEmpty && Config.isIgnore(path)) {
+            //skip ignore, remove empty dir
+            if (0 == count && autoRemoveEmpty && !Config.isIgnore(path)) {
                 opMap.put(path, getOp(Op.DEL_OP));
                 continue;
             }
             AtomicBoolean exit=new AtomicBoolean(false);
             Files.list(path).forEach(file -> {
-                //show all file or exe file
-                if (!exit.get() && (Files.isExecutable(file) || Files.isRegularFile(file))) {
-                    System.out.print("file:" + file.getFileName() + ",选择 操作:");
+                //not support directory
+                boolean b=!Files.isDirectory(file) && (Files.isRegularFile(file) || Files.isExecutable(file));
+                if (!exit.get() && b) {
+                    System.out.print("\""+file.getFileName() + "\",选择 操作:");
                     String op = scanner.nextLine();
                     while (!isValidOp(op) && isContinue(op)) {
                         op = scanner.nextLine();
@@ -113,7 +113,6 @@ public class DirectoryMoveService {
             System.out.println("未进行操作.");
             return;
         }
-        System.out.println("将要执行任务:");
         for (Map.Entry<Path, Op> entry : opMap.entrySet()
         ) {
             if (!entry.getValue().skip()) {
