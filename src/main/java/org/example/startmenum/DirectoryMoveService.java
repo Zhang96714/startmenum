@@ -80,7 +80,6 @@ public class DirectoryMoveService {
             }
 
             //files
-            System.out.println(path + "下的子目录:");
             Files.list(path).forEach(file -> {
                 //not exit
                 if(Config.isNotIgnore(file)){
