@@ -7,7 +7,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class DirectoryMoveService {
+public class DirectoryMoveService extends AbstractMoveService{
     final String START_MENU = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs";//public
     final String USER_START_MENU="C:\\Users\\%s\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs";
     static boolean autoRemoveEmpty=true;
@@ -42,8 +42,6 @@ public class DirectoryMoveService {
         if (subDirs.isEmpty()) {
             return;
         }
-
-        System.out.println("开始操作操作说明:1 删除 2 移动 3[s] 跳过,s会保存到cp文件中");
         //add op
         addOps(subDirs);
         //tasks
@@ -170,18 +168,13 @@ public class DirectoryMoveService {
         }
     }
 
-    List<String> supportOps = Arrays.asList(Op.DEL_OP, Op.MOVE_OP, Op.SKIP_OP);
-
-    boolean isValidOp(String inputOp) {
-        return supportOps.contains(inputOp) || validSaveOp(inputOp);
+     void before(){
+         System.out.println("注意操作，操作不当影响功能");
+        System.out.println("开始操作操作说明:1 删除 2 移动 3[s] 跳过,s会保存到cp文件中");
     }
 
-    boolean validSaveOp(String inputOp){
-        return "3s".equals(inputOp);
-    }
-
-    boolean isContinue(String end){
-        return !"exit".equals(end);
+     void end(){
+        System.out.println("结束");
     }
 
     interface Op {
@@ -257,11 +250,13 @@ public class DirectoryMoveService {
 
     public static void main(String[] args) throws IOException {
         DirectoryMoveService service=new DirectoryMoveService();
-        service.moveStartMenu(service.START_MENU);
 
+        service.before();
+        service.moveStartMenu(service.START_MENU);
         String username=System.getProperty("user.name");
         if(null !=username  && !"".equals(username)){
             service.moveStartMenu(service.USER_START_MENU.replace("%s",username));
         }
+        service.end();
     }
 }
