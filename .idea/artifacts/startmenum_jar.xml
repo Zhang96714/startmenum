@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="startmenum:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/startmenum_jar</output-path>
+    <root id="archive" name="startmenum.jar">
+      <element id="module-output" name="startmenum" />
+    </root>
+  </artifact>
+</component>
