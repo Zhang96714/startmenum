@@ -9,15 +9,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DirectoryMoveService {
     final String START_MENU = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs";//public
+    final String USER_START_MENU="C:\\Users\\%s\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs";
     static boolean autoRemoveEmpty=true;
     static boolean useCpFile=true;
 
-    private final Path startMenu;
+    private Path startMenu;
     private final Map<Path, Op> opMap;
     private final Map<String, Op> ops;
 
     DirectoryMoveService() {
-        startMenu = Paths.get(START_MENU);
         opMap = new TreeMap<>();//sorted
         ops = new HashMap<>();
 
@@ -32,7 +32,9 @@ public class DirectoryMoveService {
         Config.init();
     }
 
-    public void moveStartMenu() throws IOException {
+    public void moveStartMenu(String location) throws IOException {
+        startMenu = Paths.get(location);
+
         System.out.println("可移动目录如下:");
         List<Path> subDirs = new ArrayList<>();
         //dirs
@@ -57,7 +59,7 @@ public class DirectoryMoveService {
             if (path.toFile().isDirectory()) {
                 boolean add=true;
                 if(useCpFile){
-                    add=!Config.isIgnore(path);
+                    add= Config.isNotIgnore(path);
                 }
                 if(add){
                     System.out.println(path);
@@ -75,7 +77,7 @@ public class DirectoryMoveService {
             System.out.println(path.toString() + "下的子目录:");
             long count = Files.list(path).count();
             //skip ignore, remove empty dir
-            if (0 == count && autoRemoveEmpty && !Config.isIgnore(path)) {
+            if (0 == count && autoRemoveEmpty && Config.isNotIgnore(path)) {
                 opMap.put(path, getOp(Op.DEL_OP));
                 continue;
             }
@@ -180,9 +182,11 @@ public class DirectoryMoveService {
          */
         @Override
         public void work(Path path) throws MoveException {
-            Path p = path.getParent();
+            //get parent path
+            Path p = path.getParent().getParent();
+            Path newFile=p.resolve(Config.getName(path));
             try {
-                Files.move(path, p);
+                Files.move(path, newFile);
             } catch (IOException e) {
                 throw new MoveException(e);
             }
@@ -212,6 +216,12 @@ public class DirectoryMoveService {
     }
 
     public static void main(String[] args) throws IOException {
-        new DirectoryMoveService().moveStartMenu();
+        DirectoryMoveService service=new DirectoryMoveService();
+//        service.moveStartMenu(service.START_MENU);
+
+        String username=System.getProperty("user.name");
+        if(null !=username  && !"".equals(username)){
+            service.moveStartMenu(service.USER_START_MENU.replace("%s",username));
+        }
     }
 }

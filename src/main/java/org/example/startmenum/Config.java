@@ -31,15 +31,17 @@ public class Config {
        }
     }
 
-    public static boolean isIgnore(Path dir){
+    public static boolean isNotIgnore(Path dir){
         if(ignoreDir.isEmpty()){
-            return false;
+            return true;
         }
+        return !ignoreDir.contains(getName(dir))
+                && !ignoreDir.contains(dir.toAbsolutePath().toString());
+    }
 
+    public static String getName(Path dir){
         String dirPath=dir.toString();
-        String dirName=dirPath.substring(dirPath.lastIndexOf(File.separatorChar)+1);
-        return ignoreDir.contains(dirName)
-                || ignoreDir.contains(dir.toAbsolutePath().toString());
+        return dirPath.substring(dirPath.lastIndexOf(File.separatorChar)+1);
     }
 
     static class DirSet extends HashSet<String>{
