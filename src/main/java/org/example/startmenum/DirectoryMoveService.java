@@ -36,6 +36,24 @@ public class DirectoryMoveService {
         System.out.println("可移动目录如下:");
         List<Path> subDirs = new ArrayList<>();
         //dirs
+        addDirs(subDirs);
+        if (subDirs.isEmpty()) {
+            System.out.println("结束.");
+            return;
+        }
+
+        System.out.println("开始操作操作说明:1 删除 2 移动 3 跳过 (exit 可退出)");
+        //add op
+        addOps(subDirs);
+        //tasks
+        printTasks();
+        //run tasks
+        runTasks();
+
+        System.out.println("结束.");
+    }
+
+    void addDirs(List<Path> subDirs) throws IOException{
         Files.list(startMenu).forEach(path -> {
             if (path.toFile().isDirectory()) {
                 boolean add=true;
@@ -49,13 +67,10 @@ public class DirectoryMoveService {
 
             }
         });
-        if (subDirs.isEmpty()) {
-            System.out.println("结束.");
-            return;
-        }
+    }
 
+    void addOps(List<Path> subDirs) throws IOException{
         Scanner scanner = new Scanner(System.in);
-        System.out.println("开始操作操作说明:1 删除 2 移动 3 跳过 (exit 可退出)");
         for (Path path : subDirs) {
             //files
             System.out.println(path.toString() + "下的子目录:");
@@ -67,13 +82,14 @@ public class DirectoryMoveService {
             }
             AtomicBoolean exit=new AtomicBoolean(false);
             Files.list(path).forEach(file -> {
-                if (file.toFile().isFile() && !exit.get()) {
-                    System.out.println("file:" + file.getFileName() + ",选择 操作:");
+                //show all file or exe file
+                if (!exit.get() && (Files.isExecutable(file) || Files.isRegularFile(file))) {
+                    System.out.print("file:" + file.getFileName() + ",选择 操作:");
                     String op = scanner.nextLine();
-                    while (!isValidOp(op) && !isExit(op)) {
+                    while (!isValidOp(op) && isContinue(op)) {
                         op = scanner.nextLine();
                     }
-                    if(!isExit(op)){
+                    if(isContinue(op)){
                         opMap.put(file, getOp(op));
                     }else {
                         exit.set(true);
@@ -86,13 +102,6 @@ public class DirectoryMoveService {
             }
 
         }
-
-        //tasks
-        printTasks();
-        //run tasks
-        runTasks();
-
-        System.out.println("结束.");
     }
 
     Op getOp(String op) {
@@ -134,8 +143,8 @@ public class DirectoryMoveService {
         return supportOps.contains(inputOp);
     }
 
-    boolean isExit(String end){
-        return "exit".equals(end);
+    boolean isContinue(String end){
+        return !"exit".equals(end);
     }
 
     interface Op {
