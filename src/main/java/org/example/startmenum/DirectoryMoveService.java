@@ -44,7 +44,7 @@ public class DirectoryMoveService {
             return;
         }
 
-        System.out.println("开始操作操作说明:1 删除 2 移动 3 跳过 (exit 可退出)");
+        System.out.println("开始操作操作说明:1 删除 2 移动 3[s] 跳过,s会保存到cp文件中");
         //add op
         addOps(subDirs);
         //tasks
@@ -72,6 +72,7 @@ public class DirectoryMoveService {
 
     void addOps(List<Path> subDirs) throws IOException{
         Scanner scanner = new Scanner(System.in);
+        AtomicBoolean save= new AtomicBoolean(false);
         for (Path path : subDirs) {
             //files
             System.out.println(path.toString() + "下的子目录:");
@@ -85,14 +86,26 @@ public class DirectoryMoveService {
             Files.list(path).forEach(file -> {
                 //not support directory
                 boolean b=!Files.isDirectory(file) && (Files.isRegularFile(file) || Files.isExecutable(file));
-                if (!exit.get() && b) {
-                    System.out.print("\""+file.getFileName() + "\",选择 操作:");
+                //file not be ignored
+                b= b && Config.isNotIgnore(file);
+                boolean continueBool=!exit.get() && b;
+                if (continueBool) {
+                    String filename=file.getFileName().toString();
+                    System.out.print("\""+filename + "\",选择 操作:");
                     String op = scanner.nextLine();
                     while (!isValidOp(op) && isContinue(op)) {
                         op = scanner.nextLine();
                     }
                     if(isContinue(op)){
-                        opMap.put(file, getOp(op));
+                        //cp file update
+                        String o=op;
+                        if(validSaveOp(op)){
+                            Config.appendToCpFile(file);
+                            save.set(true);
+                            //first
+                            o=op.substring(0,1);
+                        }
+                        opMap.put(file, getOp(o));
                     }else {
                         exit.set(true);
                     }
@@ -103,6 +116,10 @@ public class DirectoryMoveService {
                 System.exit(0);
             }
 
+        }
+
+        if(save.get()){
+            Config.updateCpFile();
         }
     }
 
@@ -141,7 +158,11 @@ public class DirectoryMoveService {
     List<String> supportOps = Arrays.asList(Op.DEL_OP, Op.MOVE_OP, Op.SKIP_OP);
 
     boolean isValidOp(String inputOp) {
-        return supportOps.contains(inputOp);
+        return supportOps.contains(inputOp) || validSaveOp(inputOp);
+    }
+
+    boolean validSaveOp(String inputOp){
+        return "3s".equals(inputOp);
     }
 
     boolean isContinue(String end){
