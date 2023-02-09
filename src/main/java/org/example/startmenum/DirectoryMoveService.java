@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DirectoryMoveService {
     final String START_MENU = "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs";//public
@@ -54,25 +55,36 @@ public class DirectoryMoveService {
         }
 
         Scanner scanner = new Scanner(System.in);
-        System.out.println("开始操作操作说明:1 删除 2 移动 3 跳过.3");
+        System.out.println("开始操作操作说明:1 删除 2 移动 3 跳过 (exit 可退出)");
         for (Path path : subDirs) {
             //files
             System.out.println(path.toString() + "下的子目录:");
             long count = Files.list(path).count();
-            if (0 == count && autoRemoveEmpty) {
+            //skip ignore
+            if (0 == count && autoRemoveEmpty && Config.isIgnore(path)) {
                 opMap.put(path, getOp(Op.DEL_OP));
                 continue;
             }
+            AtomicBoolean exit=new AtomicBoolean(false);
             Files.list(path).forEach(file -> {
-                if (file.toFile().isFile()) {
+                if (file.toFile().isFile() && !exit.get()) {
                     System.out.println("file:" + file.getFileName() + ",选择 操作:");
                     String op = scanner.nextLine();
-                    while (!isValidOp(op)) {
+                    while (!isValidOp(op) && !isExit(op)) {
                         op = scanner.nextLine();
                     }
-                    opMap.put(file, getOp(op));
+                    if(!isExit(op)){
+                        opMap.put(file, getOp(op));
+                    }else {
+                        exit.set(true);
+                    }
                 }
             });
+            if(exit.get()){
+                //exit
+                System.exit(0);
+            }
+
         }
 
         //tasks
@@ -120,6 +132,10 @@ public class DirectoryMoveService {
 
     boolean isValidOp(String inputOp) {
         return supportOps.contains(inputOp);
+    }
+
+    boolean isExit(String end){
+        return "exit".equals(end);
     }
 
     interface Op {
