@@ -52,7 +52,11 @@ public class Config {
          */
         @Override
         public boolean add(String s) {
-            return null != s && !s.equals("") && super.add(s.toLowerCase());
+            return null != s && !s.equals("") && !skipLine(s) && super.add(s.toLowerCase());
+        }
+
+        private boolean skipLine(String line){
+            return line.startsWith("#") || line.startsWith("//");
         }
 
         /**
