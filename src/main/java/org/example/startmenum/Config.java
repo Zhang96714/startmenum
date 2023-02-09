@@ -33,7 +33,7 @@ public class Config {
 
     public static boolean isIgnore(Path dir){
         if(ignoreDir.isEmpty()){
-            return true;
+            return false;
         }
 
         String dirPath=dir.toString();
