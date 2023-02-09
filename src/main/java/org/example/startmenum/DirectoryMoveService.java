@@ -17,6 +17,8 @@ public class DirectoryMoveService {
     private final Map<Path, Op> opMap;
     private final Map<String, Op> ops;
 
+    Scanner scanner = new Scanner(System.in);
+
     DirectoryMoveService() {
         opMap = new TreeMap<>();//sorted
         ops = new HashMap<>();
@@ -34,13 +36,10 @@ public class DirectoryMoveService {
 
     public void moveStartMenu(String location) throws IOException {
         startMenu = Paths.get(location);
-
-        System.out.println("可移动目录如下:");
         List<Path> subDirs = new ArrayList<>();
         //dirs
         addDirs(subDirs);
         if (subDirs.isEmpty()) {
-            System.out.println("结束.");
             return;
         }
 
@@ -62,7 +61,6 @@ public class DirectoryMoveService {
                     add= Config.isNotIgnore(path);
                 }
                 if(add){
-                    System.out.println(path);
                     subDirs.add(path);
                 }
 
@@ -71,55 +69,72 @@ public class DirectoryMoveService {
     }
 
     void addOps(List<Path> subDirs) throws IOException{
-        Scanner scanner = new Scanner(System.in);
-        AtomicBoolean save= new AtomicBoolean(false);
+        Config.Bool bool=new Config.Bool();
+
         for (Path path : subDirs) {
-            //files
-            System.out.println(path.toString() + "下的子目录:");
             long count = Files.list(path).count();
             //skip ignore, remove empty dir
             if (0 == count && autoRemoveEmpty && Config.isNotIgnore(path)) {
                 opMap.put(path, getOp(Op.DEL_OP));
                 continue;
             }
-            AtomicBoolean exit=new AtomicBoolean(false);
+
+            //files
+            System.out.println(path + "下的子目录:");
             Files.list(path).forEach(file -> {
-                //not support directory
-                boolean b=!Files.isDirectory(file) && (Files.isRegularFile(file) || Files.isExecutable(file));
-                //file not be ignored
-                b= b && Config.isNotIgnore(file);
-                boolean continueBool=!exit.get() && b;
-                if (continueBool) {
-                    String filename=file.getFileName().toString();
-                    System.out.print("\""+filename + "\",选择 操作:");
-                    String op = scanner.nextLine();
-                    while (!isValidOp(op) && isContinue(op)) {
-                        op = scanner.nextLine();
-                    }
-                    if(isContinue(op)){
-                        //cp file update
-                        String o=op;
-                        if(validSaveOp(op)){
-                            Config.appendToCpFile(file);
-                            save.set(true);
-                            //first
-                            o=op.substring(0,1);
+                //not exit
+                if(Config.isNotIgnore(file)){
+                    if(Files.isDirectory(file)){
+                        //sub dir
+                        try {
+                            Files.list(file).forEach(subFile -> {
+                                if(Config.isNotIgnore(subFile) && !Files.isDirectory(subFile)){
+                                    prepareOps(subFile,bool);
+                                }
+                            });
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
-                        opMap.put(file, getOp(o));
                     }else {
-                        exit.set(true);
+                        //file
+                        prepareOps(file,bool);
                     }
                 }
             });
-            if(exit.get()){
+            if(bool.isExit()){
                 //exit
                 System.exit(0);
             }
 
         }
 
-        if(save.get()){
+        if(bool.isSave()){
             Config.updateCpFile();
+        }
+    }
+
+    void prepareOps(Path file, Config.Bool bool){
+        //not exit
+        if (!bool.isExit()) {
+            String filename=file.getFileName().toString();
+            System.out.print("\""+filename + "\",选择 操作:");
+            String op = scanner.nextLine();
+            while (!isValidOp(op) && isContinue(op)) {
+                op = scanner.nextLine();
+            }
+            if(isContinue(op)){
+                //cp file update
+                String o=op;
+                if(validSaveOp(op)){
+                    Config.appendToCpFile(file);
+                    bool.setSave();
+                    //first
+                    o=op.substring(0,1);
+                }
+                opMap.put(file, getOp(o));
+            }else {
+                bool.setExit();
+            }
         }
     }
 
@@ -129,7 +144,6 @@ public class DirectoryMoveService {
 
     void printTasks() {
         if (opMap.isEmpty()) {
-            System.out.println("未进行操作.");
             return;
         }
         for (Map.Entry<Path, Op> entry : opMap.entrySet()
@@ -152,6 +166,8 @@ public class DirectoryMoveService {
                     ex.printStackTrace();
                 }
             }
+            //clean
+            opMap.clear();
         }
     }
 
@@ -207,6 +223,10 @@ public class DirectoryMoveService {
             Path p = path.getParent().getParent();
             Path newFile=p.resolve(Config.getName(path));
             try {
+                if(Files.exists(newFile)){
+                    //delete
+                    Files.delete(newFile);
+                }
                 Files.move(path, newFile);
             } catch (IOException e) {
                 throw new MoveException(e);

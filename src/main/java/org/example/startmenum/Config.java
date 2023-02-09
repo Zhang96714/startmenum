@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Config {
 
@@ -31,7 +32,15 @@ public class Config {
             } catch (IOException ignore) {
 
             }
+        }else {
+            try {
+                Files.createFile(configPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
+
+
     }
 
     public static boolean isNotIgnore(Path dir) {
@@ -59,7 +68,7 @@ public class Config {
                     BufferedWriter writer=Files.newBufferedWriter(CURRENT_CP_PATH)
                     ){
                 for (String line:ignoreDir) {
-                    writer.append(line);
+                    writer.append(line).append(System.lineSeparator());
                 }
             }catch (IOException e){
                 e.printStackTrace();
@@ -99,6 +108,28 @@ public class Config {
         @Override
         public boolean contains(Object o) {
             return super.contains(o.toString().toLowerCase());
+        }
+    }
+
+    public static class Bool{
+
+        AtomicBoolean exit=new AtomicBoolean(false);
+        AtomicBoolean save= new AtomicBoolean(false);
+
+        public boolean isExit(){
+            return exit.get();
+        }
+
+        public boolean isSave(){
+            return save.get();
+        }
+
+        public void setExit(){
+            exit.set(true);
+        }
+
+        public void setSave(){
+            save.set(true);
         }
     }
 }
