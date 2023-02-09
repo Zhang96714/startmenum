@@ -238,7 +238,7 @@ public class DirectoryMoveService {
 
     public static void main(String[] args) throws IOException {
         DirectoryMoveService service=new DirectoryMoveService();
-//        service.moveStartMenu(service.START_MENU);
+        service.moveStartMenu(service.START_MENU);
 
         String username=System.getProperty("user.name");
         if(null !=username  && !"".equals(username)){
